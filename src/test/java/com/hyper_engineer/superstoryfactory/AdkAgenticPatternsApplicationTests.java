@@ -1,0 +1,13 @@
+package com.hyper_engineer.superstoryfactory;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+class AdkAgenticPatternsApplicationTests {
+
+	@Test
+	void contextLoads() {
+	}
+
+}
