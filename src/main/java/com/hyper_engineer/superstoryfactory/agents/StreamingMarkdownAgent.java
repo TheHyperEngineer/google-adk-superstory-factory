@@ -10,7 +10,7 @@ public class StreamingMarkdownAgent {
     public BaseAgent getAgent() {
         return LlmAgent.builder()
                 .name("markdown-streaming-agent")
-                .description("A helpful assistant that streams responses in Markdown format.")
+                .description("Use this tool for general conversation, answering questions, or when no other tool seems appropriate. This is the default choice.")
                 .instruction("""
                         You are a helpful AI assistant.
                         Your goal is to provide a detailed and informative response to the user's topic.

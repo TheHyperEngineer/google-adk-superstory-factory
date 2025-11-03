@@ -1,12 +1,12 @@
 package com.hyper_engineer.superstoryfactory.controllers;
 
+import com.google.gson.Gson;
 import com.google.adk.agents.RunConfig;
 import com.google.adk.events.Event;
 import com.google.adk.runner.InMemoryRunner;
 import com.google.adk.sessions.Session;
 import com.google.genai.types.Content;
 import com.google.genai.types.Part;
-import com.google.gson.Gson;
 import io.reactivex.rxjava3.core.Flowable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +15,9 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api")
@@ -40,42 +43,40 @@ public class ChatController {
         RunConfig runConfig = RunConfig.builder().build();
         Content userMsg = Content.fromParts(Part.fromText(prompt));
 
-        Flowable<Event> routerEvents = Flowable.defer(() -> {
+        // Use a Mono to represent the single, decisive final event from the router.
+        // This entire block runs asynchronously but completes with one item.
+        Mono<Event> routerDecisionMono = Mono.fromCallable(() -> {
             Session session = routerRunner.sessionService()
                     .createSession(routerRunner.appName(), "unified-user-" + System.currentTimeMillis())
                     .blockingGet();
-            return routerRunner.runAsync(session.userId(), session.id(), userMsg, runConfig);
-        });
+            // Execute the router and get the *last* event, which contains the final decision.
+            return routerRunner.runAsync(session.userId(), session.id(), userMsg, runConfig).blockingLast();
+        }).doOnSuccess(event -> log.info("Router decision event: {}", event));
 
-        Flux<Event> routerFlux = Flux.from(routerEvents)
-                .doOnNext(e -> log.debug("[ROUTER_EVENT] {}", e)) // Changed to DEBUG to reduce noise
-                .cache();
-
-        Mono<Event> routerDecisionMono = routerFlux
-                .filter(e -> "master-router-agent".equals(e.author()) && e.finalResponse())
-                .last()
-                .doOnSuccess(e -> log.info("Router decision event: {}", e));
-
+        // Use the result of the Mono to switch to the correct final stream (Flux).
         return routerDecisionMono.flatMapMany(decisionEvent -> {
-            String decision = decisionEvent.stringifyContent();
+            String decisionText = decisionEvent.stringifyContent();
 
-            if ("DEFAULT".equalsIgnoreCase(decision.trim())) {
+            // CASE 1: The router decided to use the default chat agent.
+            if ("DEFAULT".equalsIgnoreCase(decisionText.trim())) {
                 log.info("Routing to DEFAULT (Streaming Chat).");
+                // Execute the streaming agent with the correct streaming configuration.
                 return executeStreamingAgent(userMsg, runConfig)
-                        .filter(this::isStreamableChatEvent) // Use the corrected filter
+                        .filter(this::isStreamableChatEvent)
                         .map(Event::stringifyContent);
-            } else {
+            }
+            // CASE 2: The router used a specialized tool (Joker or Story Factory).
+            else {
                 log.info("Routing to SPECIALIZED TOOL output.");
-                // The final output from the router ALREADY contains the processed result from the tool.
-                // We don't need to look at the functionResponse anymore. We just take the final text.
-                // This is simpler and avoids duplication.
-                return Flux.just(decisionEvent.stringifyContent());
+                // The final, complete answer is the content of the router's last event.
+                // Return a stream containing just this single, complete answer.
+                return Flux.just(decisionText);
             }
         }).onErrorResume(e -> {
             log.error("An error occurred in the chat stream: {}", e.getMessage(), e);
-            String friendlyMessage = "Sorry, I encountered an error. Please try again.";
+            String friendlyMessage = "Sorry, an error occurred. Please try again.";
             if (e.getMessage() != null && e.getMessage().contains("429")) {
-                friendlyMessage = "I'm experiencing high traffic right now. Please wait a moment before sending another request.";
+                friendlyMessage = "Too many requests. Please wait a moment before trying again.";
             }
             return Flux.just(friendlyMessage);
         });
@@ -85,18 +86,46 @@ public class ChatController {
         Session chatSession = streamingChatRunner.sessionService()
                 .createSession(streamingChatRunner.appName(), "streaming-delegate-" + System.currentTimeMillis())
                 .blockingGet();
-        return Flux.from(streamingChatRunner.runAsync(chatSession.userId(), chatSession.id(), userMsg, runConfig));
+
+        // THIS IS THE CORRECT WAY TO ENABLE STREAMING based on the provided source code.
+        RunConfig streamingRunConfig = RunConfig.builder(runConfig)
+                .setStreamingMode(RunConfig.StreamingMode.SSE)
+                .build();
+
+        return Flux.from(streamingChatRunner.runAsync(chatSession.userId(), chatSession.id(), userMsg, streamingRunConfig));
     }
 
-    // This is the robust filter we developed earlier. It handles both streaming and single-response cases.
     private boolean isStreamableChatEvent(Event event) {
-        boolean isFromModel = "model".equals(event.author());
-        boolean isFromAgent = "markdown-streaming-agent".equals(event.author());
-        boolean hasNoFunctionCalls = event.functionCalls().isEmpty();
+        // This filter is for the streaming agent ONLY.
+        // It must accept partial chunks from the model.
+        boolean isModelChunk = "model".equals(event.author()) && event.partial().orElse(false);
+        // It must also accept the final consolidated event from the agent itself.
+        boolean isFinalAgentResponse = "markdown-streaming-agent".equals(event.author()) && event.finalResponse();
 
-        if (hasNoFunctionCalls && (isFromModel || (isFromAgent && event.finalResponse()))) {
-            return true;
+        return (isModelChunk || isFinalAgentResponse) && event.functionCalls().isEmpty();
+    }
+
+    // This helper is no longer needed with the simplified logic but is kept for reference.
+    private String extractContentFromResult(Event event) {
+        if (event.functionResponses().isEmpty()) {
+            return event.stringifyContent();
         }
-        return false;
+        try {
+            Optional<?> responseObjectOpt = event.functionResponses().get(0).response();
+            if (responseObjectOpt.isPresent()) {
+                Object responseData = responseObjectOpt.get();
+                if (responseData instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> responseMap = (Map<String, Object>) responseData;
+                    if (responseMap.containsKey("result")) {
+                        return responseMap.get("result").toString();
+                    }
+                }
+                return new Gson().toJson(responseData);
+            }
+        } catch (Exception e) {
+            log.error("Error parsing function response content: {}", e.getMessage());
+        }
+        return event.stringifyContent();
     }
 }
