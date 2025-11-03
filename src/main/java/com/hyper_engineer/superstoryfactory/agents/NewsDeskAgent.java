@@ -12,9 +12,9 @@ public class NewsDeskAgent {
     private final SocialMediaAgent socialMediaAgent;
 
     public NewsDeskAgent(
-        NewsReportAgent newsReportAgent,
-        TweetAgent tweetAgent,
-        SocialMediaAgent socialMediaAgent) {
+            NewsReportAgent newsReportAgent,
+            TweetAgent tweetAgent,
+            SocialMediaAgent socialMediaAgent) {
         this.newsReportAgent = newsReportAgent;
         this.tweetAgent = tweetAgent;
         this.socialMediaAgent = socialMediaAgent;

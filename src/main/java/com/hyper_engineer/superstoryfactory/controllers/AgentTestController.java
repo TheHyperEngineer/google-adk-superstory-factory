@@ -25,7 +25,7 @@ public class AgentTestController {
     public String testStoryWriter(@RequestParam String topic) {
         // Use default run configuration
         RunConfig runConfig = RunConfig.builder().build();
-        
+
         // The InMemoryRunner is the simplest way to execute an agent
         InMemoryRunner runner = new InMemoryRunner(newsReportAgent.getAgent());
 
@@ -37,7 +37,7 @@ public class AgentTestController {
 
         // Create the user's message from the topic
         Content userMsg = Content.fromParts(Part.fromText(topic));
-        
+
         // Run the agent asynchronously and get a stream of events
         Flowable<Event> events = runner.runAsync(session.userId(), session.id(), userMsg, runConfig);
 
@@ -48,7 +48,7 @@ public class AgentTestController {
                 response.append(event.stringifyContent());
             }
         });
-        
+
         return response.toString();
     }
 }
