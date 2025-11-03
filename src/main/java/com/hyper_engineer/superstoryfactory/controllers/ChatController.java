@@ -16,9 +16,6 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Map;
-import java.util.Optional;
-
 @RestController
 @RequestMapping("/api")
 @CrossOrigin(origins = "http://localhost:5173")
@@ -51,26 +48,28 @@ public class ChatController {
         });
 
         Flux<Event> routerFlux = Flux.from(routerEvents)
-                .doOnNext(e -> log.info("[ROUTER_EVENT] {}", e))
+                .doOnNext(e -> log.debug("[ROUTER_EVENT] {}", e)) // Changed to DEBUG to reduce noise
                 .cache();
 
-        Mono<Event> routerDecision = routerFlux
+        Mono<Event> routerDecisionMono = routerFlux
                 .filter(e -> "master-router-agent".equals(e.author()) && e.finalResponse())
                 .last()
                 .doOnSuccess(e -> log.info("Router decision event: {}", e));
 
-        return routerDecision.flatMapMany(decisionEvent -> {
+        return routerDecisionMono.flatMapMany(decisionEvent -> {
             String decision = decisionEvent.stringifyContent();
+
             if ("DEFAULT".equalsIgnoreCase(decision.trim())) {
-                log.info("Routing to DEFAULT (Streaming Chat)");
+                log.info("Routing to DEFAULT (Streaming Chat).");
                 return executeStreamingAgent(userMsg, runConfig)
-                        .filter(this::isLlmChunkEvent) // Filter for streamable chunks
-                        .map(Event::stringifyContent); // Convert to String
+                        .filter(this::isStreamableChatEvent) // Use the corrected filter
+                        .map(Event::stringifyContent);
             } else {
-                log.info("Routing to SPECIALIZED TOOL output");
-                return routerFlux
-                        .filter(e -> !e.functionResponses().isEmpty())
-                        .map(this::extractContentFromResult);
+                log.info("Routing to SPECIALIZED TOOL output.");
+                // The final output from the router ALREADY contains the processed result from the tool.
+                // We don't need to look at the functionResponse anymore. We just take the final text.
+                // This is simpler and avoids duplication.
+                return Flux.just(decisionEvent.stringifyContent());
             }
         }).onErrorResume(e -> {
             log.error("An error occurred in the chat stream: {}", e.getMessage(), e);
@@ -89,37 +88,15 @@ public class ChatController {
         return Flux.from(streamingChatRunner.runAsync(chatSession.userId(), chatSession.id(), userMsg, runConfig));
     }
 
-    private String extractContentFromResult(Event event) {
-        if (event.functionResponses().isEmpty()) {
-            return event.stringifyContent();
-        }
-
-        try {
-            // Correctly handle the generic Optional<?> returned by the method
-            Optional<?> responseObjectOpt = event.functionResponses().get(0).response();
-            if (responseObjectOpt.isPresent()) {
-                Object responseData = responseObjectOpt.get();
-                if (responseData instanceof Map) {
-                    // We can safely cast here after the check
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> responseMap = (Map<String, Object>) responseData;
-                    if (responseMap.containsKey("result")) {
-                        return responseMap.get("result").toString();
-                    }
-                }
-                return gson.toJson(responseData);
-            }
-        } catch (Exception e) {
-            log.error("Error parsing function response content: {}", e.getMessage());
-        }
-
-        return event.stringifyContent();
-    }
-
-    private boolean isLlmChunkEvent(Event event) {
-        boolean isModelAuthor = "model".equals(event.author());
-        boolean isPartial = event.partial().orElse(false);
+    // This is the robust filter we developed earlier. It handles both streaming and single-response cases.
+    private boolean isStreamableChatEvent(Event event) {
+        boolean isFromModel = "model".equals(event.author());
+        boolean isFromAgent = "markdown-streaming-agent".equals(event.author());
         boolean hasNoFunctionCalls = event.functionCalls().isEmpty();
-        return isModelAuthor && isPartial && hasNoFunctionCalls;
+
+        if (hasNoFunctionCalls && (isFromModel || (isFromAgent && event.finalResponse()))) {
+            return true;
+        }
+        return false;
     }
 }
