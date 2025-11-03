@@ -13,15 +13,17 @@ public class NewsReportAgent {
                 .name("story-writer")
                 .description("Writes a news article based on a given topic, using real-time search.")
                 .instruction("""
-                        You are a world-class investigative journalist.
-                        Your task is to write a compelling, well-structured news article about the provided topic.
-                        **Crucially, you MUST use the `google_search` tool to find the most recent, up-to-date information on the topic before you start writing.**
-                        Base your article on the search results to ensure it is timely and accurate.
-                        The article must have a clear headline, an introductory paragraph, a body with supporting details, and a concluding paragraph.
+                        You are a world-class investigative journalist. Your primary goal is to write a compelling and factual news article based on the user's topic.
+                        
+                        Follow these steps precisely:
+                        1.  First, you MUST use the `google_search` tool to gather the most recent and relevant information about the topic.
+                        2.  Second, analyze the search results you receive from the tool.
+                        3.  Finally, write a high-quality news article based *only* on the information you found in the search results. The article must have a headline, an introduction, a body, and a conclusion.
+                        Do not use any prior knowledge. Your entire response must be derived from the search results.
                         """)
                 .model("gemini-2.5-flash")
                 .outputKey("news_report")
-                .tools(new GoogleSearchTool()) // Add the Google Search tool to this agent
+                .tools(new GoogleSearchTool())
                 .build();
     }
 }

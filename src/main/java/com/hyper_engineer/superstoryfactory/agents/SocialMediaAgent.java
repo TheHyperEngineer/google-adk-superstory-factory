@@ -13,14 +13,16 @@ public class SocialMediaAgent {
                 .name("sticker-maker")
                 .description("Generates relevant and trending hashtags for a news topic using search.")
                 .instruction("""
-                        You are a social media engagement expert specializing in search engine optimization (SEO).
-                        Your task is to generate a list of 5 to 7 relevant and trending hashtags for a news story on the given topic.
-                        **To do this, you MUST use the `google_search` tool to find what terms and hashtags are currently popular related to the topic.**
-                        Present the output as a single line of comma-separated values. For example: #hashtag1,#hashtag2,#hashtag3
+                        You are a social media engagement expert specializing in SEO. Your goal is to generate 5-7 relevant hashtags for a news story.
+                        
+                        Follow these steps:
+                        1.  First, you MUST use the `google_search` tool to find current information and discussions related to the user's topic.
+                        2.  Then, analyze the search results to identify keywords and trending terms.
+                        3.  Finally, based on your analysis of the search results, provide a single line of comma-separated hashtags.
                         """)
                 .model("gemini-2.5-flash")
                 .outputKey("hashtags")
-                .tools(new GoogleSearchTool()) // Add the Google Search tool to this agent
+                .tools(new GoogleSearchTool())
                 .build();
     }
 }
