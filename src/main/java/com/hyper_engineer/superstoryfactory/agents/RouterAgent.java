@@ -9,43 +9,51 @@ import org.springframework.stereotype.Component;
 public class RouterAgent {
 
     private final StoryFactoryAgent storyFactoryAgent;
-    private final StreamingMarkdownAgent streamingMarkdownAgent;
     private final JokerAgent jokerAgent;
+    private final StockTickerAgent stockTickerAgent;
+    private final CodeGeneratorAgent codeGeneratorAgent;
+    private final PythonExecutorAgent pythonExecutorAgent;
 
     public RouterAgent(
             StoryFactoryAgent storyFactoryAgent,
-            StreamingMarkdownAgent streamingMarkdownAgent,
-            JokerAgent jokerAgent) {
+            JokerAgent jokerAgent,
+            StockTickerAgent stockTickerAgent,
+            CodeGeneratorAgent codeGeneratorAgent,
+            PythonExecutorAgent pythonExecutorAgent) {
         this.storyFactoryAgent = storyFactoryAgent;
-        this.streamingMarkdownAgent = streamingMarkdownAgent;
         this.jokerAgent = jokerAgent;
+        this.stockTickerAgent = stockTickerAgent;
+        this.codeGeneratorAgent = codeGeneratorAgent;
+        this.pythonExecutorAgent = pythonExecutorAgent;
     }
 
     public BaseAgent getAgent() {
+        // Create tools from our agents. The descriptions are correctly read from the agent definitions.
         var storyFactoryTool = AgentTool.create(storyFactoryAgent.getAgent());
         var jokerTool = AgentTool.create(jokerAgent.getAgent());
+        var stockTickerTool = AgentTool.create(stockTickerAgent.getAgent());
+        var codeGeneratorTool = AgentTool.create(codeGeneratorAgent.getAgent());
+        var pythonExecutorTool = AgentTool.create(pythonExecutorAgent.getAgent());
 
-        // We will handle the default case in the controller, so the router only needs to focus on special cases.
         return LlmAgent.builder()
                 .name("master-router-agent")
-                .description("The central router that directs user requests to specialist agents.")
+                .description("The primary conversational agent and router.")
                 .instruction("""
-                        You are a routing agent. Your job is to analyze the user's request and determine if it requires a specialized tool.
-                        
-                        You have the following specialized tools:
-                        - 'story_factory': Use this ONLY for explicit requests to "write a story", "create a news report", or "generate an article".
-                        - 'joke_teller': Use this ONLY for requests that explicitly ask for a "joke".
-                        
-                        If the user's request does NOT match any of the specialized tools (e.g., it's a greeting, a general question, or a simple conversation),
-                        DO NOT call any tool. Instead, simply respond with the text "DEFAULT".
-                        """)
-                .model("gemini-2.5-flash") // We can use a faster model for this simpler routing task.
-                .tools(storyFactoryTool, jokerTool)
-                .build();
-    }
+                        You are the primary interface for a powerful AI system. Your first priority is to determine if the user's request requires a specialized tool.
 
-    // Expose the default agent so the controller can use it
-    public BaseAgent getDefaultAgent() {
-        return streamingMarkdownAgent.getAgent();
+                        Here are the available tools:
+                        - 'story_factory': Use for explicit requests to "write a story", "create a news report", or "generate an article".
+                        - 'joke_teller': Use for requests that explicitly ask for a "joke".
+                        - 'stock_ticker_agent': Use for requests about the price of a stock, identified by a ticker symbol (e.g., GOOG, AAPL).
+                        - 'code_generator_agent': Use for requests to write a function, class, or block of code.
+                        - 'python_executor_agent': Use for questions that require calculation, logic, or data analysis that can be solved with Python.
+
+                        **If the user's request matches one of the tools, you MUST call that tool.** The tool will provide the complete answer.
+
+                        **If the user's request does NOT match any tool (e.g., it's a greeting, a general knowledge question like 'what is the capital of France?', or a simple conversation), you MUST answer the user's question directly and helpfully yourself.** Format your answer in Markdown.
+                        """)
+                .model("gemini-2.5-pro")
+                .tools(storyFactoryTool, jokerTool, stockTickerTool, codeGeneratorTool, pythonExecutorTool)
+                .build();
     }
 }

@@ -7,8 +7,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class StoryFactoryAgent {
 
-    // The NewsDeskAgent is no longer a direct dependency here.
-    // It is now managed by the QualityControlLoopAgent.
     private final QualityControlLoopAgent qualityControlLoopAgent;
     private final CompilerAgent compilerAgent;
 
@@ -19,14 +17,12 @@ public class StoryFactoryAgent {
 
     public BaseAgent getAgent() {
         return SequentialAgent.builder()
-                .name("story_factory") // Name matches the tool name
-                // This description is now critical for the router
-                .description("Use this tool to generate a full news report, including a story, tweets, and hashtags on a specific topic. This is a comprehensive, multi-step process.")
+                .name("story_factory")
+                .description("Use this for requests to 'write a story', 'create a news report', or 'generate an article'.")
                 .subAgents(
                         qualityControlLoopAgent.getAgent(),
                         compilerAgent.getAgent()
                 )
                 .build();
     }
-
 }
