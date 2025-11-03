@@ -10,11 +10,13 @@ import com.hyper_engineer.superstoryfactory.agents.JokerAgent;
 import io.reactivex.rxjava3.core.Flowable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:5173") // Allow requests from your React app's origin
 public class BlockingTestController {
 
     private static final Logger log = LoggerFactory.getLogger(BlockingTestController.class);

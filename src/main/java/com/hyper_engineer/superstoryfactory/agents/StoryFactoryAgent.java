@@ -1,9 +1,7 @@
-package com.hyper_engineer.superstoryfactory;
+package com.hyper_engineer.superstoryfactory.agents;
 
 import com.google.adk.agents.BaseAgent;
 import com.google.adk.agents.SequentialAgent;
-import com.hyper_engineer.superstoryfactory.agents.CompilerAgent;
-import com.hyper_engineer.superstoryfactory.agents.QualityControlLoopAgent;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -21,14 +19,14 @@ public class StoryFactoryAgent {
 
     public BaseAgent getAgent() {
         return SequentialAgent.builder()
-                .name("story-factory-orchestrator")
-                .description("Manages the end-to-end process of CREATING, REVIEWING, and FINALIZING news content.")
+                .name("story_factory") // Name matches the tool name
+                // This description is now critical for the router
+                .description("Use this tool to generate a full news report, including a story, tweets, and hashtags on a specific topic. This is a comprehensive, multi-step process.")
                 .subAgents(
-                        // First, run the content through the quality control loop until it passes.
                         qualityControlLoopAgent.getAgent(),
-                        // ONLY THEN, compile the approved content.
                         compilerAgent.getAgent()
                 )
                 .build();
     }
+
 }

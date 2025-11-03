@@ -8,11 +8,13 @@ import com.google.genai.types.Content;
 import com.google.genai.types.Part;
 import com.hyper_engineer.superstoryfactory.agents.NewsReportAgent;
 import io.reactivex.rxjava3.core.Flowable;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:5173") // Allow requests from your React app's origin
 public class AgentTestController {
 
     private final NewsReportAgent newsReportAgent;

@@ -12,12 +12,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:5173")
 public class StreamingChatController {
 
     private static final Logger log = LoggerFactory.getLogger(StreamingChatController.class);
@@ -27,9 +29,11 @@ public class StreamingChatController {
         this.streamingChatRunner = streamingChatRunner;
     }
 
-    @PostMapping(value = "/stream-chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> streamChat(@RequestBody StoryRequest request) {
-        log.info("Received /stream-chat request for topic: {}", request.getTopic());
+    @GetMapping(value = "/stream-chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> streamChat(@RequestParam String userQuestion) {
+        log.info("Received /stream-chat request for topic: {}", userQuestion);
+        StoryRequest request = new StoryRequest();
+        request.setTopic(userQuestion);
         RunConfig runConfig = RunConfig.builder().build();
 
         Session session = streamingChatRunner.sessionService()
