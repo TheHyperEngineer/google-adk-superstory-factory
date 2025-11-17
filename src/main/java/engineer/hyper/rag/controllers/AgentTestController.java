@@ -6,6 +6,7 @@ import com.google.adk.runner.InMemoryRunner;
 import com.google.adk.sessions.Session;
 import com.google.genai.types.Content;
 import com.google.genai.types.Part;
+import engineer.hyper.rag.agents.TweetAgent;
 import io.reactivex.rxjava3.core.Flowable;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,10 +17,10 @@ import org.springframework.web.bind.annotation.RestController;
 @CrossOrigin(origins = "http://localhost:5173") // Allow requests from your React app's origin
 public class AgentTestController {
 
-    private final NewsReportAgent newsReportAgent;
+    private final TweetAgent tweetAgent;
 
-    public AgentTestController(NewsReportAgent newsReportAgent) {
-        this.newsReportAgent = newsReportAgent;
+    public AgentTestController(TweetAgent tweetAgent) {
+        this.tweetAgent = tweetAgent;
     }
 
     @GetMapping("/test-story-writer")
@@ -28,7 +29,7 @@ public class AgentTestController {
         RunConfig runConfig = RunConfig.builder().build();
 
         // The InMemoryRunner is the simplest way to execute an agent
-        InMemoryRunner runner = new InMemoryRunner(newsReportAgent.getAgent());
+        InMemoryRunner runner = new InMemoryRunner(tweetAgent.getAgent());
 
         // Create a session for the conversation
         Session session = runner
