@@ -1,4 +1,4 @@
-package com.hyper_engineer.superstoryfactory;
+package engineer.hyper.rag;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

@@ -10,7 +10,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
-    <groupId>engineer.hyper.agentic</groupId>
+    <groupId>engineer.hyper.rag</groupId>
     <artifactId>adk-agentic-patterns</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>adk-agentic-patterns</name>
@@ -41,11 +41,11 @@
         </dependency>
 
         <!-- For running agents via AdkWebServer or InMemoryRunner -->
-        <dependency>
+<!--        <dependency>
             <groupId>com.google.adk</groupId>
             <artifactId>google-adk-dev</artifactId>
             <version>${adk.version}</version>
-        </dependency>
+        </dependency>-->
 
         <dependency>
             <groupId>org.projectlombok</groupId>

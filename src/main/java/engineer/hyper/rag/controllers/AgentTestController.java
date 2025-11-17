@@ -1,4 +1,4 @@
-package com.hyper_engineer.superstoryfactory.controllers;
+package engineer.hyper.rag.controllers;
 
 import com.google.adk.agents.RunConfig;
 import com.google.adk.events.Event;
@@ -6,7 +6,6 @@ import com.google.adk.runner.InMemoryRunner;
 import com.google.adk.sessions.Session;
 import com.google.genai.types.Content;
 import com.google.genai.types.Part;
-import com.hyper_engineer.superstoryfactory.agents.NewsReportAgent;
 import io.reactivex.rxjava3.core.Flowable;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;

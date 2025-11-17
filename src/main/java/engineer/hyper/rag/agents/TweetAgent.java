@@ -1,4 +1,4 @@
-package com.hyper_engineer.superstoryfactory.agents;
+package engineer.hyper.rag.agents;
 
 import com.google.adk.agents.BaseAgent;
 import com.google.adk.agents.LlmAgent;

@@ -1,4 +1,4 @@
-package com.hyper_engineer.superstoryfactory.controllers;
+package engineer.hyper.rag.controllers;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

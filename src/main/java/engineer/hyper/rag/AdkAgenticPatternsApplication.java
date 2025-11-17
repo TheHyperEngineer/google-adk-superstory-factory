@@ -1,4 +1,4 @@
-package com.hyper_engineer.superstoryfactory;
+package engineer.hyper.rag;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
